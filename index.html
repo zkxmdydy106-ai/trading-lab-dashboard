@@ -103,13 +103,34 @@ function chart(rows, base){
     document.getElementById("rows").innerHTML = rows.slice(-30).reverse().map(r => `<tr><td>${r.date}</td><td class="n ${cls(+r.daily_return)}">${pct(+r.daily_return)}</td><td class="n">${Math.round(+r.equity_krw).toLocaleString()}</td></tr>`).join("") || '<tr><td colspan="3" class="note">내일 아침 09:20부터 기록됩니다.</td></tr>';
     document.getElementById("status").innerHTML = `<b>데이터 상태</b> · 코인 일봉 ${today.data.coin_last} · 미국 ${today.data.us_last} · 펀딩비 바이낸스 원본 ${today.data.funding_last}${today.data.proxy_from?` · <b>${today.data.proxy_from}부터 다른 거래소 대리값</b>`:""} · 갱신 ${today.generated_kst}`;
   } catch (e) { document.getElementById("asof").textContent = "데이터 없음"; document.getElementById("status").textContent = "아직 첫 결과가 올라오지 않았습니다. 다음 실행(매일 09:20) 뒤 보입니다. " + e; }
-  try {
-    const L = await j("data/live.json");
-    document.getElementById("livets").textContent = L.generated_kst + " 기준";
-    const chg = L.est_change;
-    document.getElementById("liveeq").innerHTML = `${won(L.est_equity_krw)} <span class="${cls(chg)}" style="font-size:18px">${pct(chg)} 오늘</span>`;
-    document.getElementById("livebody").innerHTML = L.legs.map(g => `<tr><td>${g.name}</td><td class="n">${pct(g.weight,1)}</td><td class="n">${g.prev.toLocaleString(undefined,{maximumFractionDigits:2})}</td><td class="n">${g.live.toLocaleString(undefined,{maximumFractionDigits:2})}</td><td class="n ${cls(g.ret)}">${pct(g.ret)}</td></tr>`).join("");
-  } catch (e) { document.getElementById("livecard").querySelector(".note").textContent = "실시간 평가는 첫 갱신(30분 주기) 뒤 표시됩니다."; }
+  // 실시간 평가: 코인은 페이지를 열 때마다 바이낸스 시세를 직접 받아 계산(진짜 실시간), 미국 상품은 30분 주기 live.json 값 사용
+  async function renderLive(){
+    let L = null;
+    try { L = await j("data/live.json"); } catch (e) {}
+    let legs = L ? L.legs.map(g => ({...g})) : [];
+    let srcNote = L ? `미국 상품 ${L.generated_kst} 기준(30분 주기)` : "";
+    try {
+      const T = await (await fetch("https://data-api.binance.vision/api/v3/ticker/price?symbols=%5B%22BTCUSDT%22,%22ETHUSDT%22%5D", {cache:"no-store"})).json();
+      const px = Object.fromEntries(T.map(t => [t.symbol, +t.price]));
+      const today = await j("data/today.json");
+      const names = {BTC:"BTC(선물)", ETH:"ETH(선물)"};
+      for (const k of ["BTC","ETH"]) {
+        const g = today.legs[k], live = px[k+"USDT"]; if (!g || !live) continue;
+        const row = {name:names[k], weight:g.w, prev:g.px, live, ret: live/g.px-1};
+        const i = legs.findIndex(x => x.name === names[k]); if (i >= 0) legs[i] = row; else legs.push(row);
+      }
+      srcNote = "코인 지금 시세 · " + srcNote;
+    } catch (e) { srcNote = (L ? L.generated_kst + " 기준" : "") + " · 코인 실시간 시세 불러오기 실패"; }
+    if (!legs.length) { document.getElementById("livecard").querySelector(".note").textContent = "실시간 평가는 첫 갱신 뒤 표시됩니다."; return; }
+    const chg = legs.reduce((a, g) => a + g.weight * g.ret, 0);
+    const base = L ? L.base_equity_krw : 10000000;
+    document.getElementById("livets").textContent = new Date().toLocaleTimeString("ko-KR", {hour:"2-digit", minute:"2-digit"}) + " 열람";
+    document.getElementById("liveeq").innerHTML = `${won(base*(1+chg))} <span class="${cls(chg)}" style="font-size:18px">${pct(chg)} 오늘</span>`;
+    document.getElementById("livenote").textContent = `어제 종가 포지션 × 현재가 추정(캐리 제외). ${srcNote}`;
+    document.getElementById("livebody").innerHTML = legs.map(g => `<tr><td>${g.name}</td><td class="n">${pct(g.weight,1)}</td><td class="n">${g.prev.toLocaleString(undefined,{maximumFractionDigits:2})}</td><td class="n">${g.live.toLocaleString(undefined,{maximumFractionDigits:2})}</td><td class="n ${cls(g.ret)}">${pct(g.ret)}</td></tr>`).join("");
+  }
+  await renderLive();
+  setInterval(renderLive, 60000);     // 페이지를 열어 두면 1분마다 코인 시세 갱신
 })();
 </script>
 </body>
