@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F1+캐리 모의 운용</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1b1f23; --sub:#6b7280; --line:#e5e7eb; --accent:#1f6feb; --pos:#0a8f4a; --neg:#d1242f; --warn:#fff7e6; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#0e1117; --card:#161b22; --ink:#e6edf3; --sub:#8b949e; --line:#30363d; --accent:#58a6ff; --pos:#3fb950; --neg:#f85149; --warn:#2b2411; } }
+  :root[data-theme="dark"] { --bg:#0e1117; --card:#161b22; --ink:#e6edf3; --sub:#8b949e; --line:#30363d; --accent:#58a6ff; --pos:#3fb950; --neg:#f85149; --warn:#2b2411; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif; padding:16px; max-width:760px; margin:0 auto; }
+  h1 { font-size:20px; margin:4px 0 2px; } .sub { color:var(--sub); font-size:13px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-top:12px; }
+  .big { font-size:34px; font-weight:700; letter-spacing:-0.5px; }
+  .pos { color:var(--pos); } .neg { color:var(--neg); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
+  .kpi { border:1px solid var(--line); border-radius:10px; padding:10px 12px; } .kpi .l { font-size:12px; color:var(--sub); } .kpi .v { font-size:18px; font-weight:600; margin-top:2px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; } th,td { padding:7px 6px; border-bottom:1px solid var(--line); text-align:left; } td.n, th.n { text-align:right; font-variant-numeric:tabular-nums; }
+  .note { font-size:12px; color:var(--sub); line-height:1.5; } .warn { background:var(--warn); }
+  svg { width:100%; height:auto; display:block; }
+  .pill { display:inline-block; font-size:12px; padding:2px 8px; border-radius:999px; border:1px solid var(--line); color:var(--sub); margin-left:6px; }
+</style>
+</head>
+<body>
+<h1>★ F1+캐리 모의 운용 <span class="pill" id="asof">불러오는 중…</span></h1>
+<div class="sub">원금 1,000만 원 · 비용 포함 · 매일 종가 체결 가정 · 실제 주문 없음</div>
+
+<div class="card">
+  <div class="sub">지금 자산 (어제 종가 기준)</div>
+  <div class="big" id="equity">—</div>
+  <div id="cum" class="sub"></div>
+  <div class="grid" style="margin-top:12px">
+    <div class="kpi"><div class="l">시작 후 최대낙폭</div><div class="v" id="mdd">—</div></div>
+    <div class="kpi"><div class="l">기록 일수</div><div class="v" id="days">—</div></div>
+    <div class="kpi"><div class="l">이번 주 배율</div><div class="v" id="lev">—</div></div>
+    <div class="kpi"><div class="l">고점 대비(전략 전체)</div><div class="v" id="dd">—</div></div>
+  </div>
+</div>
+
+<div class="card" id="livecard">
+  <div class="sub">실시간 평가 <span class="pill" id="livets">—</span></div>
+  <div class="big" id="liveeq">—</div>
+  <div class="note" id="livenote">어제 종가 포지션에 현재가를 곱한 추정값입니다(캐리 제외). 30분마다 갱신.</div>
+  <table style="margin-top:8px"><thead><tr><th>자산</th><th class="n">비중</th><th class="n">어제 종가</th><th class="n">현재가</th><th class="n">오늘 변화</th></tr></thead><tbody id="livebody"></tbody></table>
+</div>
+
+<div class="card">
+  <div class="sub">자산 추이 (원)</div>
+  <div id="chart"></div>
+</div>
+
+<div class="card">
+  <div class="sub">오늘 할 일 — 이 비중으로 맞추는 것이 모의 운용의 가정</div>
+  <div id="todo" style="margin-top:8px"></div>
+</div>
+
+<div class="card">
+  <div class="sub">최근 기록</div>
+  <table style="margin-top:8px"><thead><tr><th>날짜</th><th class="n">일간</th><th class="n">자산</th></tr></thead><tbody id="rows"></tbody></table>
+</div>
+
+<div class="card warn note" id="status"></div>
+<p class="note">모의 기록입니다. 실제 계좌·실제 주문이 아니며, 과거 성과는 미래 수익을 보장하지 않습니다. 투자 자문이 아닙니다.</p>
+
+<script>
+const won = v => Math.round(v).toLocaleString("ko-KR") + "원";
+const pct = (v, d=2) => (v >= 0 ? "+" : "") + (v*100).toFixed(d) + "%";
+const cls = v => v >= 0 ? "pos" : "neg";
+async function j(u){ const r = await fetch(u + "?t=" + Date.now(), {cache:"no-store"}); if(!r.ok) throw new Error(u); return r.json(); }
+async function csv(u){ const r = await fetch(u + "?t=" + Date.now(), {cache:"no-store"}); const t = await r.text(); const [h,...rows] = t.trim().split(/\r?\n/); const k = h.split(","); return rows.filter(Boolean).map(l => Object.fromEntries(l.split(",").map((v,i)=>[k[i], v]))); }
+function chart(rows, base){
+  const el = document.getElementById("chart");
+  if (rows.length < 2) { el.innerHTML = '<div class="note">아직 하루치 기록만 있습니다. 내일 아침부터 선이 그려집니다.</div>'; return; }
+  const v = rows.map(r => +r.equity_krw), W = 720, H = 240, lo = Math.min(...v, base), hi = Math.max(...v, base), pad = (hi-lo)||1;
+  const x = i => 40 + i*(W-50)/(v.length-1), y = k => H-30 - (k-lo)/pad*(H-60);
+  const pts = v.map((k,i)=>`${x(i).toFixed(1)},${y(k).toFixed(1)}`).join(" ");
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    <line x1="40" y1="${y(base)}" x2="${W-10}" y2="${y(base)}" stroke="var(--sub)" stroke-dasharray="4" opacity=".6"/>
+    <polyline fill="none" stroke="var(--accent)" stroke-width="2.2" points="${pts}"/>
+    <text x="40" y="16" font-size="12" fill="var(--sub)">${rows[0].date} ~ ${rows[rows.length-1].date}</text>
+    <text x="${W-10}" y="${(y(v[v.length-1])-6).toFixed(1)}" font-size="12" text-anchor="end" fill="var(--ink)">${Math.round(v[v.length-1]).toLocaleString()}</text>
+    <text x="40" y="${H-8}" font-size="11" fill="var(--sub)">점선 = 원금 ${base.toLocaleString()}원</text></svg>`;
+}
+(async () => {
+  try {
+    const [today, rows] = await Promise.all([j("data/today.json"), csv("data/equity.csv")]);
+    const base = today.capital_krw, eq = rows.length ? +rows[rows.length-1].equity_krw : base;
+    document.getElementById("asof").textContent = "기준일 " + today.asof;
+    document.getElementById("equity").textContent = won(eq);
+    document.getElementById("cum").innerHTML = `<span class="${cls(eq/base-1)}">${pct(eq/base-1)}</span> · 모의 시작 ${today.start}`;
+    let peak = base, mdd = 0; rows.forEach(r => { const e = +r.equity_krw; peak = Math.max(peak, e); mdd = Math.min(mdd, e/peak-1); });
+    document.getElementById("mdd").textContent = pct(mdd); document.getElementById("mdd").className = "v " + cls(mdd);
+    document.getElementById("days").textContent = rows.length + "일";
+    document.getElementById("lev").textContent = today.lev + "배" + (today.guard ? " (안전장치)" : "");
+    document.getElementById("dd").textContent = today.dd_now.toFixed(1) + "%";
+    chart(rows, base);
+    document.getElementById("todo").innerHTML = `
+      <table><tr><th>계좌</th><th class="n">금액</th><th>내용</th></tr>
+      <tr><td>바이낸스 (코인)</td><td class="n">${won(today.accounts.binance_krw)}</td><td>${today.crypto.map(c=>`${c.coin} <b class="${c.side==='롱'?'pos':c.side==='숏'?'neg':''}">${c.side}</b> ${Math.round(c.usdt).toLocaleString()} USDT`).join(" · ")}<br><span class="note">+ 펀딩비 캐리(총액의 20%, 25종 롱숏, 매주 일요일 교체)</span></td></tr>
+      <tr><td>키움 (미국)</td><td class="n">${won(today.accounts.kiwoom_krw)}</td><td>${today.us.map(u=>`${u.ticker} ${Math.round(u.usd).toLocaleString()} USD${u.shares!=null?` (${u.shares}주)`:""}`).join(" · ")}</td></tr></table>
+      <div class="note" style="margin-top:6px">배율 = min(상한 ${today.lev_parts.cap}, 변동성 기준 ${today.lev_parts.vol}, 절반 켈리 ${today.lev_parts.half_kelly}) · 환율 ${today.fx} 가정 · 배율은 주 1회(일요일)만 바뀜</div>`;
+    document.getElementById("rows").innerHTML = rows.slice(-30).reverse().map(r => `<tr><td>${r.date}</td><td class="n ${cls(+r.daily_return)}">${pct(+r.daily_return)}</td><td class="n">${Math.round(+r.equity_krw).toLocaleString()}</td></tr>`).join("") || '<tr><td colspan="3" class="note">내일 아침 09:20부터 기록됩니다.</td></tr>';
+    document.getElementById("status").innerHTML = `<b>데이터 상태</b> · 코인 일봉 ${today.data.coin_last} · 미국 ${today.data.us_last} · 펀딩비 바이낸스 원본 ${today.data.funding_last}${today.data.proxy_from?` · <b>${today.data.proxy_from}부터 다른 거래소 대리값</b>`:""} · 갱신 ${today.generated_kst}`;
+  } catch (e) { document.getElementById("asof").textContent = "데이터 없음"; document.getElementById("status").textContent = "아직 첫 결과가 올라오지 않았습니다. 다음 실행(매일 09:20) 뒤 보입니다. " + e; }
+  try {
+    const L = await j("data/live.json");
+    document.getElementById("livets").textContent = L.generated_kst + " 기준";
+    const chg = L.est_change;
+    document.getElementById("liveeq").innerHTML = `${won(L.est_equity_krw)} <span class="${cls(chg)}" style="font-size:18px">${pct(chg)} 오늘</span>`;
+    document.getElementById("livebody").innerHTML = L.legs.map(g => `<tr><td>${g.name}</td><td class="n">${pct(g.weight,1)}</td><td class="n">${g.prev.toLocaleString(undefined,{maximumFractionDigits:2})}</td><td class="n">${g.live.toLocaleString(undefined,{maximumFractionDigits:2})}</td><td class="n ${cls(g.ret)}">${pct(g.ret)}</td></tr>`).join("");
+  } catch (e) { document.getElementById("livecard").querySelector(".note").textContent = "실시간 평가는 첫 갱신(30분 주기) 뒤 표시됩니다."; }
+})();
+</script>
+</body>
+</html>
