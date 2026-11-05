@@ -1,16 +1,16 @@
 {
- "asof": "2026-11-03",
+ "asof": "2026-11-04",
  "start": "2026-10-29",
  "capital_krw": 10000000,
  "fx": 1430.0,
- "generated_kst": "2026-11-04 15:43",
+ "generated_kst": "2026-11-05 16:01",
  "lev": 2.0,
  "lev_parts": {
   "cap": 2.0,
-  "vol": 3.22,
-  "half_kelly": 4.55
+  "vol": 3.2,
+  "half_kelly": 4.45
  },
- "dd_now": -14.3,
+ "dd_now": -15.2,
  "guard": false,
  "weights": {
   "코인 추세": 0.212,
@@ -26,23 +26,23 @@
  "crypto": [
   {
    "coin": "BTC",
-   "side": "숏",
-   "weight_acct": -0.2879,
-   "usdt": -426.28
+   "side": "롱",
+   "weight_acct": 0.7624,
+   "usdt": 1128.64
   },
   {
    "coin": "ETH",
-   "side": "숏",
-   "weight_acct": -0.6762,
-   "usdt": -1001.13
+   "side": "롱",
+   "weight_acct": 0.5527,
+   "usdt": 818.31
   }
  ],
  "us": [
   {
    "ticker": "QLD",
-   "usd": 426.06,
+   "usd": 421.5,
    "shares": 5,
-   "price": 81.28,
+   "price": 82.81,
    "src": "실시간",
    "signal": "▼▼▼▼▲",
    "expo": 0.25
@@ -51,14 +51,14 @@
    "ticker": "GLD",
    "usd": 0.0,
    "shares": 0,
-   "price": 359.26,
+   "price": 372.49,
    "src": "실시간",
    "signal": "▼▼▼▼▼",
    "expo": 0.0
   },
   {
    "ticker": "BIL(현금)",
-   "usd": 5086.48,
+   "usd": 5091.04,
    "shares": null,
    "price": null,
    "src": "",
@@ -68,25 +68,25 @@
  ],
  "legs": {
   "BTC": {
-   "w": -0.06103479999999999,
-   "px": 77453.86
+   "w": 0.1616288,
+   "px": 80504.01
   },
   "ETH": {
-   "w": -0.1433544,
-   "px": 2274.77
+   "w": 0.1171724,
+   "px": 2424.61
   },
   "QLD": {
    "w": 0.0605,
-   "px": 81.27999877929688
+   "px": 82.80999755859375
   },
   "GLD": {
    "w": 0.0,
-   "px": 359.260009765625
+   "px": 372.489990234375
   }
  },
  "data": {
-  "coin_last": "2026-11-03",
-  "us_last": "2026-11-03",
+  "coin_last": "2026-11-04",
+  "us_last": "2026-11-04",
   "funding_last": "2026-10-31",
   "proxy_from": "2026-11-01",
   "spot_api": true,
