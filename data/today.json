@@ -1,16 +1,16 @@
 {
- "asof": "2026-11-04",
+ "asof": "2026-11-05",
  "start": "2026-10-29",
  "capital_krw": 10000000,
  "fx": 1430.0,
- "generated_kst": "2026-11-05 16:01",
+ "generated_kst": "2026-11-06 16:01",
  "lev": 2.0,
  "lev_parts": {
   "cap": 2.0,
-  "vol": 3.2,
-  "half_kelly": 4.45
+  "vol": 3.06,
+  "half_kelly": 3.68
  },
- "dd_now": -15.2,
+ "dd_now": -17.4,
  "guard": false,
  "weights": {
   "코인 추세": 0.212,
@@ -26,39 +26,39 @@
  "crypto": [
   {
    "coin": "BTC",
-   "side": "롱",
-   "weight_acct": 0.7624,
-   "usdt": 1128.64
+   "side": "숏",
+   "weight_acct": -0.2192,
+   "usdt": -324.58
   },
   {
    "coin": "ETH",
-   "side": "롱",
-   "weight_acct": 0.5527,
-   "usdt": 818.31
+   "side": "숏",
+   "weight_acct": -0.4759,
+   "usdt": -704.55
   }
  ],
  "us": [
   {
    "ticker": "QLD",
-   "usd": 421.5,
-   "shares": 5,
-   "price": 82.81,
+   "usd": 316.14,
+   "shares": 4,
+   "price": 72.27,
    "src": "실시간",
    "signal": "▼▼▼▼▲",
-   "expo": 0.25
+   "expo": 0.19
   },
   {
    "ticker": "GLD",
-   "usd": 0.0,
-   "shares": 0,
-   "price": 372.49,
+   "usd": 921.37,
+   "shares": 2,
+   "price": 375.49,
    "src": "실시간",
-   "signal": "▼▼▼▼▼",
-   "expo": 0.0
+   "signal": "▲▼▼▼▼",
+   "expo": 0.12
   },
   {
    "ticker": "BIL(현금)",
-   "usd": 5091.04,
+   "usd": 4275.02,
    "shares": null,
    "price": null,
    "src": "",
@@ -68,25 +68,25 @@
  ],
  "legs": {
   "BTC": {
-   "w": 0.1616288,
-   "px": 80504.01
+   "w": -0.0464704,
+   "px": 76088.01
   },
   "ETH": {
-   "w": 0.1171724,
-   "px": 2424.61
+   "w": -0.10089079999999999,
+   "px": 2238.01
   },
   "QLD": {
-   "w": 0.0605,
-   "px": 82.80999755859375
+   "w": 0.04598,
+   "px": 72.2699966430664
   },
   "GLD": {
-   "w": 0.0,
-   "px": 372.489990234375
+   "w": 0.13104000000000002,
+   "px": 375.489990234375
   }
  },
  "data": {
-  "coin_last": "2026-11-04",
-  "us_last": "2026-11-04",
+  "coin_last": "2026-11-05",
+  "us_last": "2026-11-05",
   "funding_last": "2026-10-31",
   "proxy_from": "2026-11-01",
   "spot_api": true,
