@@ -41,7 +41,7 @@
 <div class="card" id="livecard">
   <div class="sub">실시간 평가 <span class="pill" id="livets">—</span></div>
   <div class="big" id="liveeq">—</div>
-  <div class="note" id="livenote">어제 종가 포지션에 현재가를 곱한 추정값입니다(캐리 제외). 30분마다 갱신.</div>
+  <div class="note" id="livenote">어제 종가 포지션에 현재가를 곱한 추정값입니다(캐리 제외). 코인은 1분마다, 미국 상품은 GitHub 예약 작업 때(몇 시간 간격) 갱신.</div>
   <table style="margin-top:8px"><thead><tr><th>자산</th><th class="n">비중</th><th class="n">어제 종가</th><th class="n">현재가</th><th class="n">오늘 변화</th></tr></thead><tbody id="livebody"></tbody></table>
 </div>
 
@@ -97,33 +97,41 @@ function chart(rows, base){
     chart(rows, base);
     document.getElementById("todo").innerHTML = `
       <table><tr><th>계좌</th><th class="n">금액</th><th>내용</th></tr>
-      <tr><td>바이낸스 (코인)</td><td class="n">${won(today.accounts.binance_krw)}</td><td>${today.crypto.map(c=>`${c.coin} <b class="${c.side==='롱'?'pos':c.side==='숏'?'neg':''}">${c.side}</b> ${Math.round(c.usdt).toLocaleString()} USDT`).join(" · ")}<br><span class="note">+ 펀딩비 캐리(총액의 20%, 25종 롱숏, 매주 일요일 교체)</span></td></tr>
+      <tr><td>바이낸스 (코인)</td><td class="n">${won(today.accounts.binance_krw)}</td><td>${today.crypto.map(c=>`${c.coin} <b class="${c.side==='롱'?'pos':c.side==='숏'?'neg':''}">${c.side}</b> ${Math.round(c.usdt).toLocaleString()} USDT`).join(" · ")}<br><span class="note">+ 펀딩비 캐리(총액의 20%, 펀딩 기록 있는 ${today.data.carry_coins ?? 25}종 중 롱5·숏5, 매주 일요일 교체)</span></td></tr>
       <tr><td>키움 (미국)</td><td class="n">${won(today.accounts.kiwoom_krw)}</td><td>${today.us.map(u=>`${u.ticker} ${Math.round(u.usd).toLocaleString()} USD${u.shares!=null?` (${u.shares}주)`:""}`).join(" · ")}</td></tr></table>
       <div class="note" style="margin-top:6px">배율 = min(상한 ${today.lev_parts.cap}, 변동성 기준 ${today.lev_parts.vol}, 절반 켈리 ${today.lev_parts.half_kelly}) · 환율 ${today.fx} 가정 · 배율은 주 1회(일요일)만 바뀜</div>`;
-    document.getElementById("rows").innerHTML = rows.slice(-30).reverse().map(r => `<tr><td>${r.date}</td><td class="n ${cls(+r.daily_return)}">${pct(+r.daily_return)}</td><td class="n">${Math.round(+r.equity_krw).toLocaleString()}</td></tr>`).join("") || '<tr><td colspan="3" class="note">내일 아침 09:20부터 기록됩니다.</td></tr>';
-    document.getElementById("status").innerHTML = `<b>데이터 상태</b> · 코인 일봉 ${today.data.coin_last} · 미국 ${today.data.us_last} · 펀딩비 바이낸스 원본 ${today.data.funding_last}${today.data.proxy_from?` · <b>${today.data.proxy_from}부터 다른 거래소 대리값</b>`:""} · 갱신 ${today.generated_kst}`;
-  } catch (e) { document.getElementById("asof").textContent = "데이터 없음"; document.getElementById("status").textContent = "아직 첫 결과가 올라오지 않았습니다. 다음 실행(매일 09:20) 뒤 보입니다. " + e; }
-  // 실시간 평가: 코인은 페이지를 열 때마다 바이낸스 시세를 직접 받아 계산(진짜 실시간), 미국 상품은 30분 주기 live.json 값 사용
+    document.getElementById("rows").innerHTML = rows.slice(-30).reverse().map(r => `<tr><td>${r.date}</td><td class="n ${cls(+r.daily_return)}">${pct(+r.daily_return)}</td><td class="n">${Math.round(+r.equity_krw).toLocaleString()}</td></tr>`).join("") || '<tr><td colspan="3" class="note">다음 하루 기록(매일 1회) 뒤부터 보입니다.</td></tr>';
+    document.getElementById("status").innerHTML = `<b>데이터 상태</b> · 코인 일봉 ${today.data.coin_last} · 미국 ${today.data.us_last} · 펀딩비 바이낸스 원본 ${today.data.funding_last}${today.data.proxy_from?` · <b>${today.data.proxy_from}부터 ${today.data.proxy_src || "다른 거래소 대리값"}</b>`:""} · 갱신 ${today.generated_kst} <span class="note">(매일 1회 · 예약은 09:20이지만 GitHub 사정으로 보통 몇 시간 늦게 실행됨)</span>`;
+  } catch (e) { document.getElementById("asof").textContent = "데이터 없음"; document.getElementById("status").textContent = "아직 첫 결과가 올라오지 않았습니다. 다음 하루 기록 뒤 보입니다. " + e; }
+  // 실시간 평가: 비중·어제 종가·기준 자산은 항상 최신 하루 기록(today.json·equity.csv)에서 가져온다.
+  // 코인 현재가는 페이지를 열 때마다 바이낸스에서 직접 받고(진짜 실시간), 미국 상품 현재가는 live.json(GitHub 예약 작업, 몇 시간 간격)의 값을 쓴다.
+  const NAMES = {BTC:"BTC(선물)", ETH:"ETH(선물)", QLD:"QLD(나스닥 2배)", GLD:"GLD(금)"};
+  function ageText(kst){
+    const t = new Date(String(kst).replace(" ", "T") + ":00+09:00"); const m = Math.round((Date.now() - t) / 60000);
+    if (!isFinite(m)) return ""; return m < 60 ? `${Math.max(m,0)}분 전` : m < 1440 ? `${Math.round(m/60)}시간 전` : `${Math.round(m/1440)}일 전`;
+  }
   async function renderLive(){
-    let L = null;
+    let L = null, today = null, rows = [];
     try { L = await j("data/live.json"); } catch (e) {}
-    let legs = L ? L.legs.map(g => ({...g})) : [];
-    let srcNote = L ? `미국 상품 ${L.generated_kst} 기준(30분 주기)` : "";
+    try { [today, rows] = await Promise.all([j("data/today.json"), csv("data/equity.csv")]); } catch (e) {}
+    if (!today) { document.getElementById("livecard").querySelector(".note").textContent = "실시간 평가는 첫 기록 뒤 표시됩니다."; return; }
+    const live = {};
+    if (L) for (const g of L.legs) { const k = Object.keys(NAMES).find(k => NAMES[k] === g.name || g.name.startsWith(k)); if (k) live[k] = g.live; }
+    let usNote = L ? `미국 상품 시세 ${L.generated_kst} (${ageText(L.generated_kst)}, 미국 장중에만 변함)` : "미국 상품 시세 없음";
+    let coinNote = "코인 지금 시세";
     try {
       const T = await (await fetch("https://data-api.binance.vision/api/v3/ticker/price?symbols=%5B%22BTCUSDT%22,%22ETHUSDT%22%5D", {cache:"no-store"})).json();
-      const px = Object.fromEntries(T.map(t => [t.symbol, +t.price]));
-      const today = await j("data/today.json");
-      const names = {BTC:"BTC(선물)", ETH:"ETH(선물)"};
-      for (const k of ["BTC","ETH"]) {
-        const g = today.legs[k], live = px[k+"USDT"]; if (!g || !live) continue;
-        const row = {name:names[k], weight:g.w, prev:g.px, live, ret: live/g.px-1};
-        const i = legs.findIndex(x => x.name === names[k]); if (i >= 0) legs[i] = row; else legs.push(row);
-      }
-      srcNote = "코인 지금 시세 · " + srcNote;
-    } catch (e) { srcNote = (L ? L.generated_kst + " 기준" : "") + " · 코인 실시간 시세 불러오기 실패"; }
+      for (const t of T) live[t.symbol.replace("USDT","")] = +t.price;
+    } catch (e) { coinNote = "코인 실시간 시세 불러오기 실패(마지막 저장값 사용)"; }
+    const legs = [];
+    for (const k of Object.keys(NAMES)) {
+      const g = today.legs[k]; if (!g || !g.px || live[k] == null) continue;
+      legs.push({name:NAMES[k], weight:g.w, prev:g.px, live:live[k], ret: live[k]/g.px-1});
+    }
     if (!legs.length) { document.getElementById("livecard").querySelector(".note").textContent = "실시간 평가는 첫 갱신 뒤 표시됩니다."; return; }
+    const srcNote = coinNote + " · " + usNote;
     const chg = legs.reduce((a, g) => a + g.weight * g.ret, 0);
-    const base = L ? L.base_equity_krw : 10000000;
+    const base = rows.length ? +rows[rows.length-1].equity_krw : today.capital_krw;
     document.getElementById("livets").textContent = new Date().toLocaleTimeString("ko-KR", {hour:"2-digit", minute:"2-digit"}) + " 열람";
     document.getElementById("liveeq").innerHTML = `${won(base*(1+chg))} <span class="${cls(chg)}" style="font-size:18px">${pct(chg)} 오늘</span>`;
     document.getElementById("livenote").textContent = `어제 종가 포지션 × 현재가 추정(캐리 제외). ${srcNote}`;
