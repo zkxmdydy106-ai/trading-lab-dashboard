@@ -3,7 +3,7 @@
  "start": "2026-10-29",
  "capital_krw": 10000000,
  "fx": 1430.0,
- "generated_kst": "2026-11-14 15:45",
+ "generated_kst": "2026-11-14 22:25",
  "lev": 2.0,
  "lev_parts": {
   "cap": 2.0,
@@ -89,6 +89,8 @@
   "us_last": "2026-11-13",
   "funding_last": "2026-10-31",
   "proxy_from": "2026-11-01",
+  "proxy_src": "OKX 대리값",
+  "carry_coins": 22,
   "spot_api": true,
   "fapi": false
  }
