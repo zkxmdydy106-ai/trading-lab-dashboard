@@ -45,6 +45,17 @@
   <table style="margin-top:8px"><thead><tr><th>자산</th><th class="n">비중</th><th class="n">어제 종가</th><th class="n">현재가</th><th class="n">오늘 변화</th></tr></thead><tbody id="livebody"></tbody></table>
 </div>
 
+<div class="card" id="dcacard" style="display:none">
+  <div class="sub">적립판 — 같은 수익에 매달 <span id="dcaday">18</span>일 <span id="dcaamt">50만</span> 원 입금 <span class="pill" id="dcanext">—</span></div>
+  <div class="big" id="dcaeq">—</div>
+  <div id="dcasub" class="sub"></div>
+  <div class="grid" style="margin-top:12px">
+    <div class="kpi"><div class="l">넣은 돈</div><div class="v" id="dcainv">—</div></div>
+    <div class="kpi"><div class="l">손익</div><div class="v" id="dcapnl">—</div></div>
+    <div class="kpi"><div class="l">입금 횟수</div><div class="v" id="dcan">—</div></div>
+  </div>
+</div>
+
 <div class="card">
   <div class="sub">자산 추이 (원)</div>
   <div id="chart"></div>
@@ -102,6 +113,18 @@ function chart(rows, base){
       <div class="note" style="margin-top:6px">배율 = min(상한 ${today.lev_parts.cap}, 변동성 기준 ${today.lev_parts.vol}, 절반 켈리 ${today.lev_parts.half_kelly}) · 환율 ${today.fx} 가정 · 배율은 주 1회(일요일)만 바뀜</div>`;
     document.getElementById("rows").innerHTML = rows.slice(-30).reverse().map(r => `<tr><td>${r.date}</td><td class="n ${cls(+r.daily_return)}">${pct(+r.daily_return)}</td><td class="n">${Math.round(+r.equity_krw).toLocaleString()}</td></tr>`).join("") || '<tr><td colspan="3" class="note">다음 하루 기록(매일 1회) 뒤부터 보입니다.</td></tr>';
     document.getElementById("status").innerHTML = `<b>데이터 상태</b> · 코인 일봉 ${today.data.coin_last} · 미국 ${today.data.us_last} · 펀딩비 바이낸스 원본 ${today.data.funding_last}${today.data.proxy_from?` · <b>${today.data.proxy_from}부터 ${today.data.proxy_src || "다른 거래소 대리값"}</b>`:""} · 갱신 ${today.generated_kst} <span class="note">(매일 1회 · 예약은 09:20이지만 GitHub 사정으로 보통 몇 시간 늦게 실행됨)</span>`;
+    try {
+      const D = await j("data/dca.json");
+      const $ = id => document.getElementById(id);
+      $("dcacard").style.display = "";
+      $("dcaday").textContent = D.deposit_day; $("dcaamt").textContent = (D.deposit_krw/10000).toLocaleString("ko-KR") + "만";
+      $("dcanext").textContent = D.next_deposit ? "다음 입금 " + D.next_deposit : "—";
+      $("dcaeq").textContent = won(D.equity_krw);
+      $("dcasub").textContent = `시작 ${D.start} 1,000만 원 · 기준일 ${D.asof}`;
+      $("dcainv").textContent = won(D.invested_krw);
+      $("dcapnl").innerHTML = `<span class="${cls(D.profit_krw)}">${D.profit_krw >= 0 ? "+" : ""}${won(D.profit_krw)} (${D.profit_pct >= 0 ? "+" : ""}${D.profit_pct.toFixed(2)}%)</span>`;
+      $("dcan").textContent = D.n_deposits + "회";
+    } catch (e) {}
   } catch (e) { document.getElementById("asof").textContent = "데이터 없음"; document.getElementById("status").textContent = "아직 첫 결과가 올라오지 않았습니다. 다음 하루 기록 뒤 보입니다. " + e; }
   // 실시간 평가: 비중·어제 종가·기준 자산은 항상 최신 하루 기록(today.json·equity.csv)에서 가져온다.
   // 코인 현재가는 페이지를 열 때마다 바이낸스에서 직접 받고(진짜 실시간), 미국 상품 현재가는 live.json(GitHub 예약 작업, 몇 시간 간격)의 값을 쓴다.
