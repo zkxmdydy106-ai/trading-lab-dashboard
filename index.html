@@ -56,6 +56,16 @@
   </div>
 </div>
 
+<div class="card" id="c3card" style="display:none">
+  <div class="sub">비교 기록 — C3: 본 기록 + 테이커 매수 비율 추종 20% <span class="pill" id="c3since">—</span></div>
+  <div class="grid" style="margin-top:10px">
+    <div class="kpi"><div class="l">C3판</div><div class="v" id="c3eq">—</div></div>
+    <div class="kpi"><div class="l">본 기록(같은 날 시작)</div><div class="v" id="c3base">—</div></div>
+    <div class="kpi"><div class="l">차이</div><div class="v" id="c3diff">—</div></div>
+  </div>
+  <div class="note" style="margin-top:6px">연구에서 '관찰' 등급이라 바꾸기 전 실제 기록으로 확인 중입니다. 몇 달 쌓여야 판단할 수 있습니다.</div>
+</div>
+
 <div class="card">
   <div class="sub">자산 추이 (원)</div>
   <div id="chart"></div>
@@ -124,6 +134,14 @@ function chart(rows, base){
       $("dcainv").textContent = won(D.invested_krw);
       $("dcapnl").innerHTML = `<span class="${cls(D.profit_krw)}">${D.profit_krw >= 0 ? "+" : ""}${won(D.profit_krw)} (${D.profit_pct >= 0 ? "+" : ""}${D.profit_pct.toFixed(2)}%)</span>`;
       $("dcan").textContent = D.n_deposits + "회";
+    } catch (e) {}
+    try {
+      const K = await j("data/c3.json");
+      const $ = id => document.getElementById(id);
+      $("c3card").style.display = "";
+      $("c3since").textContent = `시작 ${K.start} · ${K.days}일` + (K.asof ? ` · 기준일 ${K.asof}` : "");
+      $("c3eq").textContent = won(K.equity_c3_krw); $("c3base").textContent = won(K.equity_main_krw);
+      $("c3diff").innerHTML = `<span class="${cls(K.diff_krw)}">${K.diff_krw >= 0 ? "+" : ""}${won(K.diff_krw)}</span>`;
     } catch (e) {}
   } catch (e) { document.getElementById("asof").textContent = "데이터 없음"; document.getElementById("status").textContent = "아직 첫 결과가 올라오지 않았습니다. 다음 하루 기록 뒤 보입니다. " + e; }
   // 실시간 평가: 비중·어제 종가·기준 자산은 항상 최신 하루 기록(today.json·equity.csv)에서 가져온다.
