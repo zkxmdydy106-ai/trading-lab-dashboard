@@ -4,5 +4,9 @@
  "days": 0,
  "equity_c3_krw": 10000000,
  "equity_main_krw": 10000000,
- "diff_krw": 0
+ "diff_krw": 0,
+ "extra_legs": {
+  "BTC": -0.00686,
+  "ETH": -0.03536
+ }
 }

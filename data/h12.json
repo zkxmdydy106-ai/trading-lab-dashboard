@@ -4,5 +4,9 @@
  "days": 0,
  "equity_12h_krw": 10000000,
  "equity_base_krw": 10000000,
- "diff_krw": 0
+ "diff_krw": 0,
+ "coin_legs": {
+  "BTC": -0.20068,
+  "ETH": -0.15168
+ }
 }
