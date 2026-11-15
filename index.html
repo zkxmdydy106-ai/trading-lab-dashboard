@@ -56,6 +56,16 @@
   </div>
 </div>
 
+<div class="card" id="h12card" style="display:none">
+  <div class="sub">비교 기록 — 12시간 판단판: 코인 롱·숏을 하루 1번 대신 12시간마다(한국 9시·21시) <span class="pill" id="h12since">—</span></div>
+  <div class="grid" style="margin-top:10px">
+    <div class="kpi"><div class="l">12시간판</div><div class="v" id="h12eq">—</div></div>
+    <div class="kpi"><div class="l">본 기록(같은 날 시작)</div><div class="v" id="h12base">—</div></div>
+    <div class="kpi"><div class="l">차이</div><div class="v" id="h12diff">—</div></div>
+  </div>
+  <div class="note" style="margin-top:6px">연구에서 '관찰' 등급(과거 +1.0%p, 우연 범위). 2027-11까지 1년 기록 후 판단합니다.</div>
+</div>
+
 <div class="card" id="c3card" style="display:none">
   <div class="sub">비교 기록 — C3: 본 기록 + 테이커 매수 비율 추종 20% <span class="pill" id="c3since">—</span></div>
   <div class="grid" style="margin-top:10px">
@@ -134,6 +144,14 @@ function chart(rows, base){
       $("dcainv").textContent = won(D.invested_krw);
       $("dcapnl").innerHTML = `<span class="${cls(D.profit_krw)}">${D.profit_krw >= 0 ? "+" : ""}${won(D.profit_krw)} (${D.profit_pct >= 0 ? "+" : ""}${D.profit_pct.toFixed(2)}%)</span>`;
       $("dcan").textContent = D.n_deposits + "회";
+    } catch (e) {}
+    try {
+      const H = await j("data/h12.json");
+      const $ = id => document.getElementById(id);
+      $("h12card").style.display = "";
+      $("h12since").textContent = `시작 ${H.start} · ${H.days}일` + (H.asof ? ` · 기준일 ${H.asof}` : " · 첫 기록은 시작 다음 날");
+      $("h12eq").textContent = won(H.equity_12h_krw); $("h12base").textContent = won(H.equity_base_krw);
+      $("h12diff").innerHTML = `<span class="${cls(H.diff_krw)}">${H.diff_krw >= 0 ? "+" : ""}${won(H.diff_krw)}</span>`;
     } catch (e) {}
     try {
       const K = await j("data/c3.json");
