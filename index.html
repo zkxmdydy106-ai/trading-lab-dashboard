@@ -42,7 +42,9 @@
   <div class="sub">실시간 평가 <span class="pill" id="livets">—</span></div>
   <div class="big" id="liveeq">—</div>
   <div class="note" id="livenote">어제 종가 포지션에 현재가를 곱한 추정값입니다(캐리 제외). 코인은 1분마다, 미국 상품은 GitHub 예약 작업 때(몇 시간 간격) 갱신.</div>
-  <table style="margin-top:8px"><thead><tr><th>자산</th><th class="n">비중</th><th class="n">어제 종가</th><th class="n">현재가</th><th class="n">오늘 변화</th></tr></thead><tbody id="livebody"></tbody></table>
+  <table style="margin-top:8px"><thead><tr><th>기록</th><th class="n">어제 종가 기준</th><th class="n">지금 추정</th><th class="n">오늘 변화</th></tr></thead><tbody id="liveall"></tbody></table>
+  <table style="margin-top:12px"><thead><tr><th>자산</th><th class="n">비중</th><th class="n">어제 종가</th><th class="n">현재가</th><th class="n">오늘 변화</th></tr></thead><tbody id="livebody"></tbody></table>
+  <div class="note" style="margin-top:6px">위 표: 네 기록 모두 같은 시세로 각자 들고 있는 비중만큼 추정(캐리 제외). 적립판은 본 기록과 같은 비중, C3판은 본 기록 + 테이커 추종 몫, 12시간판은 코인 비중만 다름.</div>
 </div>
 
 <div class="card" id="dcacard" style="display:none">
@@ -195,6 +197,18 @@ function chart(rows, base){
     document.getElementById("liveeq").innerHTML = `${won(base*(1+chg))} <span class="${cls(chg)}" style="font-size:18px">${pct(chg)} 오늘</span>`;
     document.getElementById("livenote").textContent = `어제 종가 포지션 × 현재가 추정(캐리 제외). ${srcNote}`;
     document.getElementById("livebody").innerHTML = legs.map(g => `<tr><td>${g.name}</td><td class="n">${pct(g.weight,1)}</td><td class="n">${g.prev.toLocaleString(undefined,{maximumFractionDigits:2})}</td><td class="n">${g.live.toLocaleString(undefined,{maximumFractionDigits:2})}</td><td class="n ${cls(g.ret)}">${pct(g.ret)}</td></tr>`).join("");
+    // 네 기록 실시간 추정: 각 기록의 어제 종가 금액 × (1 + Σ 비중 × 오늘 변화)
+    const retOf = {}; for (const k of Object.keys(NAMES)) { const g = today.legs[k]; if (g && g.px && live[k] != null) retOf[k] = live[k] / g.px - 1; }
+    const coinChg = legsW => Object.entries(legsW || {}).reduce((a, [k, w]) => a + (retOf[k] != null ? w * retOf[k] : 0), 0);
+    const usChg = ["QLD", "GLD"].reduce((a, k) => a + (today.legs[k] && retOf[k] != null ? today.legs[k].w * retOf[k] : 0), 0);
+    const opt = async u => { try { return await j(u); } catch (e) { return null; } };
+    const [D, K, H] = await Promise.all([opt("data/dca.json"), opt("data/c3.json"), opt("data/h12.json")]);
+    const tracks = [["본 기록 (F1+캐리)", base, chg]];
+    if (D) tracks.push([`적립판 (매달 ${D.deposit_day}일 ${(D.deposit_krw/10000).toLocaleString("ko-KR")}만 원)`, D.equity_krw, chg]);
+    if (H) tracks.push(["12시간 판단판", H.equity_12h_krw, H.coin_legs ? usChg + coinChg(H.coin_legs) : chg]);
+    if (K) tracks.push(["C3 (테이커 매수 비율 20% 추가)", K.equity_c3_krw, chg + coinChg(K.extra_legs)]);
+    document.getElementById("liveall").innerHTML = tracks.map(([n, b0, c]) =>
+      `<tr><td>${n}</td><td class="n">${won(b0)}</td><td class="n"><b>${won(b0*(1+c))}</b></td><td class="n ${cls(c)}">${pct(c)}</td></tr>`).join("");
   }
   await renderLive();
   setInterval(renderLive, 60000);     // 페이지를 열어 두면 1분마다 코인 시세 갱신
