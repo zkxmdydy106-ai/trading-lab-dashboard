@@ -1,12 +1,12 @@
 {
  "start": "2026-11-14",
- "asof": "2026-11-15",
- "days": 1,
- "equity_12h_krw": 9897828,
- "equity_base_krw": 9894662,
- "diff_krw": 3166,
+ "asof": "2026-11-16",
+ "days": 2,
+ "equity_12h_krw": 9911118,
+ "equity_base_krw": 9923726,
+ "diff_krw": -12608,
  "coin_legs": {
-  "BTC": -0.11758,
+  "BTC": -0.19617,
   "ETH": -0.14539
  }
 }
