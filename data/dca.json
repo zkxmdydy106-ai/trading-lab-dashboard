@@ -1,14 +1,14 @@
 {
  "start": "2026-10-29",
- "asof": "2026-11-19",
+ "asof": "2026-11-20",
  "deposit_krw": 500000,
  "deposit_day": 18,
  "invested_krw": 10500000,
- "equity_krw": 10662596,
- "profit_krw": 162596,
- "profit_pct": 1.55,
+ "equity_krw": 10863228,
+ "profit_krw": 363228,
+ "profit_pct": 3.46,
  "n_deposits": 1,
  "next_deposit": "2026-12-18",
  "worst_profit_krw": -424078,
- "best_profit_krw": 162596
+ "best_profit_krw": 363228
 }
